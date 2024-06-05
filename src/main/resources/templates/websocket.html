@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html>
+
+<head lang='zh'>
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <meta name="renderer" content="webkit"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=0"/>
+    <title>websocket--luckysheet</title>
+    <link rel='stylesheet' href='/lib//plugins/css/pluginsCss.css'/>
+    <link rel='stylesheet' href='/lib//plugins/plugins.css'/>
+    <link rel='stylesheet' href='/lib//css/luckysheet.css'/>
+    <link rel='stylesheet' href='/lib//assets/iconfont/iconfont.css'/>
+    <script src="/lib//plugins/js/plugin.js"></script>
+    <script src="/lib//luckysheet.umd.js"></script>
+    <script src="/lib//luckyexcel.umd.js"></script>
+
+</head>
+
+<body>
+
+<p style="text-align: left;">
+    <input style="font-size: 16px;" type="file" id="Luckyexcel-demo-file" name="Luckyexcel-demo-file" change="importHandler" autocomplete="off"/>
+</p>
+<div id="${wb.option.container}"
+     style="margin:0px;padding:0px;position:absolute;width:100%;height:100%;left: 0px;top: 50px;">
+
+    <script src="https://cdn.jsdelivr.net/npm/exceljs@latest/dist/exceljs.js"></script>
+</div>
+
+<script>
+
+    var localurl =  "//" + window.location.host;
+
+    // 配置项
+    var options = {
+        container: "${wb.option.container}", // 设定DOM容器的id
+        title: "${wb.option.title}", // 设定表格名称
+        lang: "${wb.option.lang}",
+        myFolderUrl: window.location.protocol + localurl+"/index?username=${username}&uid=${uid}",
+        allowUpdate: true,
+        loadUrl: window.location.protocol + localurl + "/load/${wb.id}",
+        loadSheetUrl: window.location.protocol + localurl + "/loadSheet/${wb.id}",
+        updateUrl: "ws://"+localurl + "/ws/${uid}/${username}/${wb.id}",
+        functionButton : '<button id="" class="btn btn-primary btn-danger" style=" padding:3px 6px; font-size: 12px; margin-right: 5px;" onclick="analyzeHandler()">分析</button><button id="" class="btn btn-primary btn-danger" style=" padding:3px 6px; font-size: 12px; margin-right: 85px;" onclick="deleteHandler()">删除</button><button id="" class="btn btn-primary btn-danger" style=" padding:3px 6px; font-size: 12px; margin-right: 85px;" onclick="shareHandler()">共享</button>',
+        plugins: [{ name: 'chart' }],
+    }
+
+    // 初始化表格
+    luckysheet.create(options);
+
+    //导出函数
+    function exportHandle() {
+        var jsdata = new Array();
+
+        var sheets = luckysheet.getAllSheets();
+        for (var i = 0; i < sheets.length; i++) {
+            jsdata.push({
+                "name" : sheets[i].name,
+                "celldata" : sheets[i].celldata,
+                "config" : sheets[i].config,
+                "images" : sheets[i].images,
+                "frozen" : sheets[i].frozen,
+                "dataVerification" : sheets[i].dataVerification,
+
+            });
+        }
+        console.log("JSON.stringify(jsdata) = " + JSON.stringify(jsdata))
+        var form = document.createElement("form");
+        form.method = 'post';
+        form.action = '/excel/exportFile?wbid=${wb.id}';
+        form.style = 'display:none';
+        form.enctype = 'multipart/form-data';
+        document.body.appendChild(form);
+        var newElement = document.createElement("textarea");
+        newElement.setAttribute("type", "hidden");
+        newElement.name = "exceldata";
+        newElement.value = JSON.stringify(luckysheet.getAllSheets());
+        form.appendChild(newElement);
+        form.submit();
+
+    }
+    function deleteHandler()
+    {
+        var idobj = {"wbid": "${wb.id}"};
+            //ajax 请求 接口 将数据传递给后台 并返回一个id
+            $.ajax({
+                type: "POST",
+                url: "/excel/deleteFile",
+                data: {
+                    "wbid": JSON.stringify(idobj),
+                },
+                dataType: "json",
+                success: function(data){
+                    console.log(data);
+                    if(data.code==200){
+                        console.log(data);
+                        alert("Deleted the excel file");
+                        window.close();
+                    }else{
+                        alert(data.msg);
+                    }
+                },
+                error: function(data){
+                    console.log(data.toString());
+                    alert("Failed to delete the excel file");
+                    }
+                });
+    }
+    function shareHandler()
+    {
+        let shareuser = prompt("共享用户名:");
+        var obj = {"wbid": "${wb.id}", "shareuser": shareuser};
+            //ajax 请求 接口 将数据传递给后台 并返回一个id
+            $.ajax({
+                type: "POST",
+                url: "/excel/share",
+                data: {
+                    "obj": JSON.stringify(obj),
+                },
+                dataType: "json",
+                success: function(data){
+                    console.log(data);
+                    if(data.code==200){
+                        console.log(data.msg);
+                        alert("Shared the excel file");
+                    }else{
+                        alert(data.msg);
+                    }
+                },
+                error: function(data){
+                    console.log(data.toString());
+                    alert("Failed to delete the excel file");
+                    }
+                });
+    }
+    function analyzeHandler()
+    {
+        let start = prompt("输入起始区域:");
+        let end = prompt("输入终止区域:");
+        var idobj = {"wbid": "${wb.id}"};
+        var startendobj = {"se": start+","+end};
+            //ajax 请求 接口 将数据传递给后台 并返回一个id
+            $.ajax({
+                type: "POST",
+                url: "/excel/analyze",
+                data: {
+                    "exceldata": JSON.stringify(luckysheet.getAllSheets()),
+                    "wbid": JSON.stringify(idobj),
+                    "se": JSON.stringify(startendobj),
+                },
+                dataType: "json",
+                success: function(data){
+                    console.log(data);
+                    if(data.code==200){
+                        console.log(data);
+                        alert("分析结果:\n"+data.data);
+                    }else{
+                        alert(data.msg);
+                    }
+                },
+                error: function(data){
+                    console.log(data.toString());
+                    alert("Failed to analyze the excel file");
+                    }
+                });
+    }
+
+</script>
+</body>
+
+<script>
+    function importHandler(){
+        let upload = document.getElementById("Luckyexcel-demo-file");
+        // let selectADemo = document.getElementById("Luckyexcel-select-demo");
+        // let downlodDemo = document.getElementById("Luckyexcel-downlod-file");
+        // let mask = document.getElementById("lucky-mask-demo");
+        if(upload){
+
+            window.onload = () => {
+
+                upload.addEventListener("change", function(evt){
+                    var files = evt.target.files;
+                    if(files==null || files.length==0){
+                        alert("No files wait for import");
+                        return;
+                    }
+
+                    let name = files[0].name;
+                    let suffixArr = name.split("."), suffix = suffixArr[suffixArr.length-1];
+                    if(suffix!="xlsx"){
+                        alert("Currently only supports the import of xlsx files");
+                        return;
+                    }
+                    LuckyExcel.transformExcelToLucky(files[0], function(exportJson, luckysheetfile){
+
+                        if(exportJson.sheets==null || exportJson.sheets.length==0){
+                            alert("Failed to read the content of the excel file, currently does not support xls files!");
+                            return;
+                        }
+                        console.log(exportJson, luckysheetfile)
+                        console.log("exportJson");
+                        var idobj = {"wbid": "${wb.id}"};
+                        //ajax 请求 接口 将数据传递给后台 并返回一个id
+                        $.ajax({
+                            type: "POST",
+                            url: "/excel/importFile?username=${username}&uid=${uid}",
+                            data: {
+                                "exceldata": JSON.stringify(exportJson),
+                                "wbid": JSON.stringify(idobj),
+                            },
+                            dataType: "json",
+                            success: function(data){
+                                console.log(data);
+                                if(data.code==200){
+                                    console.log(data);
+                                    window.location.href = "/index/"+data.data+"?username=${username}&uid=${uid}";
+                                    window.location.href = "/index/"+data.data+"?username=${username}&uid=${uid}";
+                                }else{
+                                    alert(data.msg);
+                                }
+                            },
+                            error: function(data){
+                                console.log(data.toString());
+                                alert("Failed to import the excel file");
+                            }
+                        });
+
+
+
+                    });
+                });
+
+
+
+
+            }
+        }
+    }
+    importHandler();
+
+
+
+    var exportExcel =  async function (luckysheet) { // 参数为luckysheet.getluckysheetfile()获取的对象
+        // 1.创建工作簿，可以为工作簿添加属性
+        const workbook = new ExcelJS.Workbook()
+        // 2.创建表格，第二个参数可以配置创建什么样的工作表
+        luckysheet.every(function (table) {
+            console.log(JSON.stringify(table.data))
+            if (table.data.length === 0) return true
+            const worksheet = workbook.addWorksheet(table.name)
+            // 3.设置单元格合并,设置单元格边框,设置单元格样式,设置值
+            setStyleAndValue(table.data, worksheet)
+            setMerge(table.config.merge, worksheet)
+            setBorder(table.config.borderInfo, worksheet)
+            //setwidthcol(table.data, worksheet);
+            return true
+        })
+
+        // 4.写入 buffer
+        const buf = await workbook.xlsx.writeBuffer();
+        // 下载 excel
+        workbook.xlsx.writeBuffer().then((buf) => {
+            let blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;charset=utf-8' });
+            const downloadElement = document.createElement('a')
+            let href = window.URL.createObjectURL(blob)
+            downloadElement.href = href
+            downloadElement.download = document.getElementById("luckysheet_info_detail_input").value+".xlsx"; // 文件名字
+            document.body.appendChild(downloadElement)
+            downloadElement.click()
+            document.body.removeChild(downloadElement) // 下载完成移除元素
+            window.URL.revokeObjectURL(href) // 释放掉blob对象
+        });
+
+    }
+
+    var setMerge = function (luckyMerge = {}, worksheet) {
+        const mergearr = Object.values(luckyMerge)
+        mergearr.forEach(function (elem) { // elem格式：{r: 0, c: 0, rs: 1, cs: 2}
+            // 按开始行，开始列，结束行，结束列合并（相当于 K10:M12）
+            worksheet.mergeCells(elem.r + 1, elem.c + 1, elem.r + elem.rs, elem.c + elem.cs)
+        })
+    }
+
+    var setBorder = function (luckyBorderInfo, worksheet) {
+        if (!Array.isArray(luckyBorderInfo)) return
+        luckyBorderInfo.forEach(function (elem) {
+            var val=elem.value;
+            let border = {}
+            const luckyToExcel = {
+                type: {
+                    'border-all': 'all',
+                    'border-top': 'top',
+                    'border-right': 'right',
+                    'border-bottom': 'bottom',
+                    'border-left': 'left'
+                },
+                style: {
+                    0: 'none',
+                    1: 'thin',
+                    2: 'hair',
+                    3: 'dotted',
+                    4: 'dashDot', // 'Dashed',
+                    5: 'dashDot',
+                    6: 'dashDotDot',
+                    7: 'double',
+                    8: 'medium',
+                    9: 'mediumDashed',
+                    10: 'mediumDashDot',
+                    11: 'mediumDashDotDot',
+                    12: 'slantDashDot',
+                    13: 'thick'
+                }
+            }
+
+            if(val.t!=undefined){
+                border['top'] = {style:luckyToExcel.style[val.t.style] , color: val.t.color}
+            }
+            if(val.r!=undefined){
+                border['right'] = {style:luckyToExcel.style[val.r.style] , color: val.r.color}
+            }
+            if(val.b!=undefined){
+                border['bottom'] = {style:luckyToExcel.style[val.b.style] , color: val.b.color}
+            }
+            if(val.l!=undefined){
+                border['left'] = {style:luckyToExcel.style[val.l.style] , color: val.l.color}
+            }
+            worksheet.getCell(val.row_index + 1, val.col_index + 1).border = border
+        })
+    }
+    var setStyleAndValue = function (cellArr, worksheet) {
+        if (!Array.isArray(cellArr)) return
+
+        cellArr.forEach(function (row, rowid) {
+            const dbrow = worksheet.getRow(rowid+1);
+            dbrow.height=luckysheet.getRowHeight([rowid])[rowid]/1.5;
+            row.every(function (cell, columnid) {
+                if (!cell) return true
+                if(rowid==0){
+                    const dobCol = worksheet.getColumn(columnid+1);
+                    dobCol.width=luckysheet.getColumnWidth([columnid])[columnid]/8;
+                }
+                let fill = fillConvert(cell.bg)
+                let font = fontConvert(cell.ff, cell.fc, cell.bl, cell.it, cell.fs, cell.cl, cell.ul)
+                let alignment = alignmentConvert(cell.vt, cell.ht, cell.tb, cell.tr)
+                let value
+
+                console.log(JSON.stringify(cell));
+                var v='';
+                if(cell.ct.t=='inlineStr'){
+                    var s=cell.ct.s;
+                    s.forEach(function(val,num){
+                        v+=val.v;
+                    })
+                }else{
+                    v=cell.v;
+                }
+                if (cell.f) {
+                    value = { formula: cell.f, result: v }
+                } else {
+                    value = v
+                }
+                let target = worksheet.getCell(rowid + 1, columnid + 1)
+                target.fill = fill
+                target.font = font
+                target.alignment = alignment
+                target.value = value
+                return true
+            })
+        })
+    }
+
+
+    var fillConvert = function (bg) {
+        if (!bg) {
+            return {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor:{argb:'#ffffff'.replace('#','')}
+            }
+        }
+        let fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: {argb: bg.replace('#', '')}
+        }
+        return fill
+    }
+
+    var fontConvert = function (ff = 0, fc = '#000000', bl = 0, it = 0, fs = 10, cl = 0, ul = 0) { // luckysheet：ff(样式), fc(颜色), bl(粗体), it(斜体), fs(大小), cl(删除线), ul(下划线)
+        const luckyToExcel = {
+            0: '微软雅黑',
+            1: '宋体（Song）',
+            2: '黑体（ST Heiti）',
+            3: '楷体（ST Kaiti）',
+            4: '仿宋（ST FangSong）',
+            5: '新宋体（ST Song）',
+            6: '华文新魏',
+            7: '华文行楷',
+            8: '华文隶书',
+            9: 'Arial',
+            10: 'Times New Roman ',
+            11: 'Tahoma ',
+            12: 'Verdana',
+            num2bl: function (num) {
+                return num === 0 ? false : true
+            }
+        }
+
+        let font = {
+            name:ff,
+            family: 1,
+            size: fs,
+            color: {argb: fc.replace('#', '')},
+            bold: luckyToExcel.num2bl(bl),
+            italic: luckyToExcel.num2bl(it),
+            underline: luckyToExcel.num2bl(ul),
+            strike: luckyToExcel.num2bl(cl)
+        }
+
+        return font
+    }
+
+    var alignmentConvert = function (vt = 'default', ht = 'default', tb = 'default', tr = 'default') { // luckysheet:vt(垂直), ht(水平), tb(换行), tr(旋转)
+        const luckyToExcel = {
+            vertical: {
+                0: 'middle',
+                1: 'top',
+                2: 'bottom',
+                default: 'top'
+            },
+            horizontal: {
+                0: 'center',
+                1: 'left',
+                2: 'right',
+                default: 'left'
+            },
+            wrapText: {
+                0: false,
+                1: false,
+                2: true,
+                default: false
+            },
+            textRotation: {
+                0: 0,
+                1: 45,
+                2: -45,
+                3: 'vertical',
+                4: 90,
+                5: -90,
+                default: 0
+            }
+        }
+
+        let alignment = {
+            vertical: luckyToExcel.vertical[vt],
+            horizontal: luckyToExcel.horizontal[ht],
+            wrapText: luckyToExcel.wrapText[tb],
+            textRotation: luckyToExcel.textRotation[tr]
+        }
+        return alignment
+
+    }
+
+    var borderConvert = function (borderType, style = 1, color = '#000') { // 对应luckysheet的config中borderinfo的的参数
+        if (!borderType) {
+            return {}
+        }
+        const luckyToExcel = {
+            type: {
+                'border-all': 'all',
+                'border-top': 'top',
+                'border-right': 'right',
+                'border-bottom': 'bottom',
+                'border-left': 'left'
+            },
+            style: {
+                0: 'none',
+                1: 'thin',
+                2: 'hair',
+                3: 'dotted',
+                4: 'dashDot', // 'Dashed',
+                5: 'dashDot',
+                6: 'dashDotDot',
+                7: 'double',
+                8: 'medium',
+                9: 'mediumDashed',
+                10: 'mediumDashDot',
+                11: 'mediumDashDotDot',
+                12: 'slantDashDot',
+                13: 'thick'
+            }
+        }
+        let template = {style: luckyToExcel.style[style], color: {argb: color.replace('#', '')}}
+        let border = {}
+        if (luckyToExcel.type[borderType] === 'all') {
+            border['top'] = template
+            border['right'] = template
+            border['bottom'] = template
+            border['left'] = template
+        } else {
+            border[luckyToExcel.type[borderType]] = template
+        }
+        return border
+    }
+
+
+</script>
+</html>
