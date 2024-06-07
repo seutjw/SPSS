@@ -23,8 +23,8 @@ import java.util.Properties;
 public class DataProcController {
     @ResponseBody
     @PostMapping("/excel/analyze")
-    public AjaxResult analyze(@RequestParam(value = "exceldata") String exceldata, @RequestParam(value = "wbid") String wbid, @RequestParam(value = "se") String se, HttpServletRequest request,
-                              HttpServletResponse response) {
+    public AjaxResult analyze(@RequestParam(value = "exceldata") String exceldata, @RequestParam(value = "wbid") String wbid, @RequestParam(value = "se") String se,
+                              @RequestParam(value = "method") String method, HttpServletRequest request, HttpServletResponse response) {
         cn.hutool.json.JSONObject seObject = JSONUtil.parseObj(se);
 //        cn.hutool.json.JSONArray jsonArray = JSONUtil.parseArray(exceldata);
         cn.hutool.json.JSONObject idObject = JSONUtil.parseObj(wbid);
@@ -41,7 +41,7 @@ public class DataProcController {
         try {
             String exe = "D:\\semi\\Scripts\\python.exe";
             String command = "G:\\luckysheet-import-team-edit-export-master\\src\\main\\java\\com\\mars\\ecsheet\\exceldata\\main.py";
-            String cmdArr = exe+" "+command+" --usecols "+usecols+" --srow "+srow+" --erow "+erow+" --excelname "+id+".xlsx";
+            String cmdArr = exe+" "+command+" --usecols "+usecols+" --srow "+srow+" --erow "+erow+" --excelname "+id+".xlsx"+" --function "+method;
             proc = Runtime.getRuntime().exec(cmdArr);// 执行py文件
             //用输入输出流来截取结果
             System.out.println(cmdArr);
