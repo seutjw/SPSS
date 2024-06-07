@@ -1,11 +1,11 @@
 <!DOCTYPE html>
 <html>
 
-<head lang='zh'>
+<head>
     <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
     <meta name="renderer" content="webkit"/>
     <meta name="viewport" content="width=device-width, initial-scale=1,user-scalable=0"/>
-    <title>websocket--luckysheet</title>
+    <title>WorkBook</title>
     <link rel='stylesheet' href='/lib//plugins/css/pluginsCss.css'/>
     <link rel='stylesheet' href='/lib//plugins/plugins.css'/>
     <link rel='stylesheet' href='/lib//css/luckysheet.css'/>
@@ -135,6 +135,7 @@
     }
     function analyzeHandler()
     {
+        let method = prompt("输入方法:(1=正则化，2=正态分布检验)");
         let start = prompt("输入起始区域:");
         let end = prompt("输入终止区域:");
         var idobj = {"wbid": "${wb.id}"};
@@ -142,7 +143,7 @@
             //ajax 请求 接口 将数据传递给后台 并返回一个id
             $.ajax({
                 type: "POST",
-                url: "/excel/analyze",
+                url: "/excel/analyze?method="+method,
                 data: {
                     "exceldata": JSON.stringify(luckysheet.getAllSheets()),
                     "wbid": JSON.stringify(idobj),
