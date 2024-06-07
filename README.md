@@ -1,1 +1,1 @@
-SPSS
+The code repository for SPSSOL
